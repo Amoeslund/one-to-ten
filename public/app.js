@@ -547,15 +547,26 @@ socket.on('connect', () => {
 
 // Initialize
 function init() {
-  // Check for saved session first
+  const params = new URLSearchParams(window.location.search);
+  const urlRoomCode = params.get('room');
   const savedSession = loadSession();
+
+  // If URL has a different room code, join that room (as spectator/player2)
+  if (urlRoomCode && (!savedSession || savedSession.roomCode !== urlRoomCode.toUpperCase())) {
+    joinRoom(urlRoomCode);
+    return;
+  }
+
+  // Rejoin saved session if exists
   if (savedSession) {
     rejoinRoom(savedSession);
     return;
   }
 
-  // Check for room code in URL
-  checkUrlForRoom();
+  // Check for room code in URL (same as saved session)
+  if (urlRoomCode) {
+    joinRoom(urlRoomCode);
+  }
 }
 
 init();
