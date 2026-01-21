@@ -1,6 +1,6 @@
 services:
   one-to-ten:
-    build: .
+    image: ghcr.io/amoeslund/one-to-ten:latest
     ports:
       - "3000:3000"
     volumes:
