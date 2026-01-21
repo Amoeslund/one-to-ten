@@ -183,12 +183,14 @@ function createRoom() {
       // Create number picker
       const maxNum = parseInt(elements.inputMaxNumber.value) || 10;
       state.maxNumber = maxNum;
+      state.selectedNumber = null; // Reset selected number
       createNumberPicker(elements.numberPickerP1, maxNum, (num) => {
         state.selectedNumber = num;
         validateP1Form();
       });
 
       showView('lobby');
+      validateP1Form(); // Ensure button is disabled initially
     } else {
       showError('Error', response.error);
     }
@@ -303,6 +305,12 @@ async function submitChallenge() {
   const name = elements.inputP1Name.value.trim();
   const challenge = elements.inputChallenge.value.trim();
   const maxNumber = parseInt(elements.inputMaxNumber.value) || 10;
+
+  // Validate all fields
+  if (!name || !challenge || state.selectedNumber === null) {
+    showError('Error', 'Please fill in your name, challenge, and pick a number');
+    return;
+  }
 
   // Generate commitment
   state.salt = await generateSalt();
