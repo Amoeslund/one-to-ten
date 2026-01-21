@@ -287,6 +287,16 @@ body {
   color: red;
 }
 
+/* Badge */
+.badge {
+  background: var(--pink);
+  color: var(--black);
+  padding: 2px 8px;
+  border: 2px solid var(--black);
+  font-size: 0.8rem;
+  margin-left: 5px;
+}
+
 /* Result States */
 .result-match .title {
   background: var(--pink);

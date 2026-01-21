@@ -101,6 +101,7 @@ const elements = {
   btnBrowse: document.getElementById('btn-browse'),
   roomsList: document.getElementById('rooms-list'),
   btnBackBrowse: document.getElementById('btn-back-browse'),
+  roomCountBadge: document.getElementById('room-count-badge'),
 
   // Error overlay
   overlayError: document.getElementById('overlay-error'),
@@ -460,6 +461,28 @@ async function loadRooms() {
     showError('Error', 'Failed to load rooms');
   }
 }
+
+// Update room count badge
+async function updateRoomCount() {
+  try {
+    const response = await fetch('/api/rooms');
+    const rooms = await response.json();
+    const count = rooms.length;
+
+    if (count > 0) {
+      elements.roomCountBadge.textContent = count;
+      elements.roomCountBadge.classList.remove('hidden');
+    } else {
+      elements.roomCountBadge.classList.add('hidden');
+    }
+  } catch (err) {
+    // Silently fail
+  }
+}
+
+// Update room count periodically
+setInterval(updateRoomCount, 5000);
+updateRoomCount(); // Initial call
 
 // Event listeners
 elements.btnCreate.addEventListener('click', createRoom);
