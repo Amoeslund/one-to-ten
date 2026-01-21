@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One to Ten</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Landing View -->
+    <div id="view-landing" class="view">
+      <h1 class="title">ONE TO TEN</h1>
+      <p class="subtitle">A game of chance and challenges</p>
+
+      <div class="card">
+        <h2>Create Game</h2>
+        <button id="btn-create" class="btn btn-primary">Create New Room</button>
+      </div>
+
+      <div class="card">
+        <h2>Join Game</h2>
+        <input type="text" id="input-room-code" class="input" placeholder="Enter room code" maxlength="6">
+        <button id="btn-join" class="btn btn-secondary">Join Room</button>
+      </div>
+
+      <div class="card">
+        <h2>How to Play</h2>
+        <ol class="rules">
+          <li>Player 1 creates a room and shares the code</li>
+          <li>Player 1 picks a secret number (1-10) and writes a challenge</li>
+          <li>Player 2 joins and sees the challenge</li>
+          <li>Player 2 picks a number</li>
+          <li>If the numbers match, Player 1 must do the challenge!</li>
+        </ol>
+      </div>
+
+      <button id="btn-history" class="btn btn-small">View History</button>
+    </div>
+
+    <!-- Lobby View (Player 1 waiting) -->
+    <div id="view-lobby" class="view hidden">
+      <h1 class="title">Room Created!</h1>
+
+      <div class="card">
+        <p class="label">Share this code:</p>
+        <div class="room-code" id="display-room-code"></div>
+        <button id="btn-copy-code" class="btn btn-small">Copy Code</button>
+        <button id="btn-copy-link" class="btn btn-small">Copy Link</button>
+      </div>
+
+      <div class="card">
+        <label class="label" for="input-p1-name">Your Name</label>
+        <input type="text" id="input-p1-name" class="input" placeholder="Enter your name" maxlength="20">
+      </div>
+
+      <div class="card">
+        <label class="label" for="input-challenge">The Challenge</label>
+        <input type="text" id="input-challenge" class="input" placeholder="e.g., I down my beer" maxlength="100">
+      </div>
+
+      <div class="card">
+        <label class="label" for="input-max-number">Max Number</label>
+        <input type="number" id="input-max-number" class="input input-small" value="10" min="2" max="100">
+      </div>
+
+      <div class="card">
+        <label class="label">Pick Your Secret Number</label>
+        <div id="number-picker-p1" class="number-picker"></div>
+      </div>
+
+      <button id="btn-submit-challenge" class="btn btn-primary" disabled>Set Challenge</button>
+      <p id="status-lobby" class="status"></p>
+    </div>
+
+    <!-- Waiting View (Player 1 after setting challenge) -->
+    <div id="view-waiting" class="view hidden">
+      <h1 class="title">Challenge Set!</h1>
+      <div class="card">
+        <p class="label">Share this code:</p>
+        <div class="room-code" id="display-room-code-waiting"></div>
+        <button id="btn-copy-code-waiting" class="btn btn-small">Copy Code</button>
+        <button id="btn-copy-link-waiting" class="btn btn-small">Copy Link</button>
+      </div>
+      <div class="card">
+        <p class="label">Your challenge:</p>
+        <p id="display-challenge" class="challenge-text"></p>
+      </div>
+      <div class="loader"></div>
+      <p class="status">Waiting for opponent to guess...</p>
+      <p id="status-p2-name" class="status"></p>
+    </div>
+
+    <!-- Join View (Player 2) -->
+    <div id="view-join" class="view hidden">
+      <h1 class="title">Join the Game</h1>
+
+      <div class="card">
+        <label class="label" for="input-p2-name">Your Name</label>
+        <input type="text" id="input-p2-name" class="input" placeholder="Enter your name" maxlength="20">
+      </div>
+
+      <div id="challenge-section" class="hidden">
+        <div class="card">
+          <p class="label">The Challenge from <span id="display-p1-name"></span>:</p>
+          <p id="display-challenge-p2" class="challenge-text"></p>
+        </div>
+
+        <div class="card">
+          <label class="label">Pick Your Number (1 to <span id="display-max-number"></span>)</label>
+          <div id="number-picker-p2" class="number-picker"></div>
+        </div>
+
+        <button id="btn-submit-guess" class="btn btn-primary" disabled>Submit Guess</button>
+      </div>
+
+      <div id="waiting-for-challenge" class="card">
+        <div class="loader"></div>
+        <p class="status">Waiting for challenge to be set...</p>
+      </div>
+    </div>
+
+    <!-- Waiting for Result View (Player 2) -->
+    <div id="view-waiting-result" class="view hidden">
+      <h1 class="title">Guess Submitted!</h1>
+      <div class="loader"></div>
+      <p class="status">Waiting for reveal...</p>
+    </div>
+
+    <!-- Result View -->
+    <div id="view-result" class="view hidden">
+      <h1 id="result-title" class="title"></h1>
+
+      <div class="card result-card">
+        <div class="result-numbers">
+          <div class="result-number">
+            <span class="label" id="result-p1-label">Player 1</span>
+            <span class="big-number" id="result-p1-number"></span>
+          </div>
+          <div class="vs">VS</div>
+          <div class="result-number">
+            <span class="label" id="result-p2-label">Player 2</span>
+            <span class="big-number" id="result-p2-number"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="label">The Challenge:</p>
+        <p id="result-challenge" class="challenge-text"></p>
+      </div>
+
+      <div class="card verification">
+        <p class="label">Verification</p>
+        <p class="small">Hash: <code id="result-hash"></code></p>
+        <p id="verification-status" class="verification-status"></p>
+      </div>
+
+      <button id="btn-play-again" class="btn btn-primary">Play Again</button>
+    </div>
+
+    <!-- History View -->
+    <div id="view-history" class="view hidden">
+      <h1 class="title">Game History</h1>
+      <div id="history-list" class="history-list"></div>
+      <button id="btn-back-history" class="btn btn-secondary">Back</button>
+    </div>
+
+    <!-- Error/Disconnect overlay -->
+    <div id="overlay-error" class="overlay hidden">
+      <div class="overlay-content card">
+        <h2 id="error-title">Error</h2>
+        <p id="error-message"></p>
+        <button id="btn-error-ok" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

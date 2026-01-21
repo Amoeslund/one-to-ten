@@ -1,0 +1,405 @@
+/* Neo-Brutalism Style */
+:root {
+  --bg: #e8e4d9;
+  --black: #1a1a1a;
+  --white: #ffffff;
+  --yellow: #f9dc5c;
+  --pink: #ff6b9d;
+  --blue: #00d4ff;
+  --green: #7bf178;
+  --orange: #ff9f43;
+  --purple: #a55eea;
+  --shadow: 4px 4px 0px var(--black);
+  --shadow-small: 2px 2px 0px var(--black);
+  --border: 3px solid var(--black);
+  --radius: 0px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Arial Black', 'Arial', sans-serif;
+  background-color: var(--bg);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Typography */
+.title {
+  font-size: 2.5rem;
+  text-transform: uppercase;
+  text-align: center;
+  background: var(--yellow);
+  padding: 15px;
+  border: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: normal;
+  font-family: Arial, sans-serif;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* Cards */
+.card {
+  background: var(--white);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+/* Buttons */
+.btn {
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-size: 1rem;
+  text-transform: uppercase;
+  padding: 15px 30px;
+  border: var(--border);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  font-weight: bold;
+}
+
+.btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--black);
+}
+
+.btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary {
+  background: var(--yellow);
+  color: var(--black);
+}
+
+.btn-secondary {
+  background: var(--blue);
+  color: var(--black);
+}
+
+.btn-small {
+  font-size: 0.8rem;
+  padding: 10px 15px;
+  box-shadow: var(--shadow-small);
+}
+
+.btn-small:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--black);
+}
+
+/* Inputs */
+.input {
+  font-family: Arial, sans-serif;
+  font-size: 1rem;
+  padding: 12px 15px;
+  border: var(--border);
+  box-shadow: var(--shadow-small);
+  width: 100%;
+  background: var(--white);
+  margin-bottom: 10px;
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: var(--shadow);
+}
+
+.input-small {
+  width: 100px;
+}
+
+/* Room Code Display */
+.room-code {
+  font-size: 3rem;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 10px;
+  padding: 20px;
+  background: var(--pink);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  margin: 10px 0;
+}
+
+/* Number Picker */
+.number-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.number-btn {
+  width: 50px;
+  height: 50px;
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: var(--border);
+  box-shadow: var(--shadow-small);
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.number-btn:hover {
+  background: var(--blue);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--black);
+}
+
+.number-btn.selected {
+  background: var(--yellow);
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Challenge Text */
+.challenge-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 15px;
+  background: var(--orange);
+  border: var(--border);
+}
+
+/* Status Messages */
+.status {
+  text-align: center;
+  font-family: Arial, sans-serif;
+  font-style: italic;
+}
+
+/* Loader */
+.loader {
+  width: 40px;
+  height: 40px;
+  border: var(--border);
+  border-top-color: var(--yellow);
+  border-radius: 0;
+  animation: spin 1s steps(4) infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Result View */
+.result-card {
+  background: var(--green);
+}
+
+.result-numbers {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 20px;
+}
+
+.result-number {
+  text-align: center;
+}
+
+.big-number {
+  display: block;
+  font-size: 4rem;
+  font-weight: bold;
+  background: var(--white);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 20px 30px;
+  margin-top: 10px;
+}
+
+.vs {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.verification {
+  font-family: Arial, sans-serif;
+  font-size: 0.8rem;
+}
+
+.verification code {
+  word-break: break-all;
+  background: var(--bg);
+  padding: 2px 5px;
+  border: 1px solid var(--black);
+}
+
+.verification-status {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.verification-status.valid {
+  color: green;
+}
+
+.verification-status.invalid {
+  color: red;
+}
+
+/* Result States */
+.result-match .title {
+  background: var(--pink);
+}
+
+.result-no-match .title {
+  background: var(--blue);
+}
+
+/* Rules */
+.rules {
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+  padding-left: 20px;
+}
+
+.rules li {
+  margin-bottom: 8px;
+}
+
+/* History */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.history-item {
+  background: var(--white);
+  border: var(--border);
+  box-shadow: var(--shadow-small);
+  padding: 15px;
+}
+
+.history-item.match {
+  border-left: 8px solid var(--pink);
+}
+
+.history-item.no-match {
+  border-left: 8px solid var(--blue);
+}
+
+.history-challenge {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.history-players {
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+}
+
+.history-result {
+  font-size: 0.8rem;
+  margin-top: 5px;
+  color: #666;
+}
+
+.small {
+  font-size: 0.75rem;
+}
+
+/* Overlay */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.overlay-content {
+  max-width: 400px;
+  text-align: center;
+}
+
+.overlay-content h2 {
+  margin-bottom: 15px;
+  color: var(--pink);
+}
+
+.overlay-content p {
+  margin-bottom: 20px;
+  font-family: Arial, sans-serif;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+  .title {
+    font-size: 1.8rem;
+  }
+
+  .room-code {
+    font-size: 2rem;
+    letter-spacing: 5px;
+  }
+
+  .number-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .big-number {
+    font-size: 3rem;
+    padding: 15px 20px;
+  }
+}
