@@ -23,6 +23,26 @@ app.get('/api/history', (req, res) => {
 // In-memory room storage (rooms are ephemeral, only history persists)
 const rooms = new Map();
 
+// API endpoint for active rooms waiting for player 2
+app.get('/api/rooms', (req, res) => {
+  const activeRooms = [];
+  for (const [code, room] of rooms.entries()) {
+    // Only show rooms that have a challenge set but no player 2 yet
+    if (room.state === 'challenge_set' && !room.player2) {
+      activeRooms.push({
+        roomCode: code,
+        player1Name: room.player1.name,
+        challenge: room.challenge,
+        maxNumber: room.maxNumber,
+        createdAt: room.createdAt
+      });
+    }
+  }
+  // Sort by newest first
+  activeRooms.sort((a, b) => b.createdAt - a.createdAt);
+  res.json(activeRooms);
+});
+
 // Room states: 'waiting' | 'challenge_set' | 'completed'
 
 io.on('connection', (socket) => {

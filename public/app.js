@@ -42,7 +42,8 @@ const views = {
   join: document.getElementById('view-join'),
   waitingResult: document.getElementById('view-waiting-result'),
   result: document.getElementById('view-result'),
-  history: document.getElementById('view-history')
+  history: document.getElementById('view-history'),
+  browse: document.getElementById('view-browse')
 };
 
 // Elements
@@ -95,6 +96,11 @@ const elements = {
   // History
   historyList: document.getElementById('history-list'),
   btnBackHistory: document.getElementById('btn-back-history'),
+
+  // Browse
+  btnBrowse: document.getElementById('btn-browse'),
+  roomsList: document.getElementById('rooms-list'),
+  btnBackBrowse: document.getElementById('btn-back-browse'),
 
   // Error overlay
   overlayError: document.getElementById('overlay-error'),
@@ -422,6 +428,39 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Load active rooms
+async function loadRooms() {
+  try {
+    const response = await fetch('/api/rooms');
+    const rooms = await response.json();
+
+    elements.roomsList.innerHTML = '';
+
+    if (rooms.length === 0) {
+      elements.roomsList.innerHTML = '<p class="status">No active rooms waiting for players</p>';
+    } else {
+      rooms.forEach(room => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.style.cursor = 'pointer';
+        item.innerHTML = `
+          <div class="history-challenge">"${escapeHtml(room.challenge)}"</div>
+          <div class="history-players">by ${escapeHtml(room.player1Name)} (1-${room.maxNumber})</div>
+          <div class="history-result">Click to join</div>
+        `;
+        item.addEventListener('click', () => {
+          joinRoom(room.roomCode);
+        });
+        elements.roomsList.appendChild(item);
+      });
+    }
+
+    showView('browse');
+  } catch (err) {
+    showError('Error', 'Failed to load rooms');
+  }
+}
+
 // Event listeners
 elements.btnCreate.addEventListener('click', createRoom);
 elements.btnJoin.addEventListener('click', () => joinRoom());
@@ -486,6 +525,9 @@ elements.btnPlayAgain.addEventListener('click', () => {
 
 elements.btnHistory.addEventListener('click', loadHistory);
 elements.btnBackHistory.addEventListener('click', () => showView('landing'));
+
+elements.btnBrowse.addEventListener('click', loadRooms);
+elements.btnBackBrowse.addEventListener('click', () => showView('landing'));
 
 elements.btnErrorOk.addEventListener('click', () => {
   elements.overlayError.classList.add('hidden');
