@@ -217,6 +217,12 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Validate required fields
+    if (!challenge || !numberHash) {
+      callback({ success: false, error: 'Challenge and number are required' });
+      return;
+    }
+
     room.challenge = challenge;
     room.maxNumber = maxNumber;
     room.player1.numberHash = numberHash;
