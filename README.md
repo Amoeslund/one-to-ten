@@ -1,6 +1,6 @@
 # One to Ten
 
-A real-time two-player guessing game with cryptographic fairness guarantees.
+A real-time two-player guessing game with cryptographic fairness guarantees. 
 
 ## How to Play
 
