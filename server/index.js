@@ -31,28 +31,88 @@ io.on('connection', (socket) => {
   // Create a new room
   socket.on('create-room', (callback) => {
     const roomCode = nanoid(6).toUpperCase();
+    const sessionId = nanoid(16);
     rooms.set(roomCode, {
       state: 'waiting',
       player1: {
         socketId: socket.id,
+        sessionId: sessionId,
         name: null,
         numberHash: null,
         salt: null,
         number: null
       },
       player2: null,
+      spectators: [],
       challenge: null,
       maxNumber: 10,
+      result: null,
       createdAt: Date.now()
     });
     socket.join(roomCode);
     socket.roomCode = roomCode;
     socket.playerRole = 'player1';
-    callback({ success: true, roomCode });
+    socket.sessionId = sessionId;
+    callback({ success: true, roomCode, sessionId });
     console.log(`Room created: ${roomCode}`);
   });
 
-  // Join an existing room
+  // Rejoin a room with session ID
+  socket.on('rejoin-room', ({ roomCode, sessionId }, callback) => {
+    const code = roomCode.toUpperCase();
+    const room = rooms.get(code);
+
+    if (!room) {
+      callback({ success: false, error: 'Room not found' });
+      return;
+    }
+
+    // Check if this is player 1 rejoining
+    if (room.player1.sessionId === sessionId) {
+      room.player1.socketId = socket.id;
+      socket.join(code);
+      socket.roomCode = code;
+      socket.playerRole = 'player1';
+      socket.sessionId = sessionId;
+
+      callback({
+        success: true,
+        role: 'player1',
+        state: room.state,
+        challenge: room.challenge,
+        maxNumber: room.maxNumber,
+        result: room.result,
+        player2Name: room.player2?.name
+      });
+      console.log(`Player 1 rejoined room: ${code}`);
+      return;
+    }
+
+    // Check if this is player 2 rejoining
+    if (room.player2?.sessionId === sessionId) {
+      room.player2.socketId = socket.id;
+      socket.join(code);
+      socket.roomCode = code;
+      socket.playerRole = 'player2';
+      socket.sessionId = sessionId;
+
+      callback({
+        success: true,
+        role: 'player2',
+        state: room.state,
+        challenge: room.challenge,
+        maxNumber: room.maxNumber,
+        result: room.result,
+        player1Name: room.player1.name
+      });
+      console.log(`Player 2 rejoined room: ${code}`);
+      return;
+    }
+
+    callback({ success: false, error: 'Invalid session' });
+  });
+
+  // Join an existing room (as player 2 or spectator)
   socket.on('join-room', (roomCode, callback) => {
     const code = roomCode.toUpperCase();
     const room = rooms.get(code);
@@ -62,18 +122,49 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Room is full - join as spectator
     if (room.player2) {
-      callback({ success: false, error: 'Room is full' });
+      socket.join(code);
+      socket.roomCode = code;
+      socket.playerRole = 'spectator';
+      room.spectators.push(socket.id);
+
+      callback({
+        success: true,
+        roomCode: code,
+        role: 'spectator',
+        state: room.state,
+        challenge: room.challenge,
+        maxNumber: room.maxNumber,
+        player1Name: room.player1.name,
+        player2Name: room.player2.name,
+        result: room.result
+      });
+      console.log(`Spectator joined room: ${code}`);
       return;
     }
 
-    if (room.state !== 'waiting' && room.state !== 'challenge_set') {
-      callback({ success: false, error: 'Game already completed' });
+    if (room.state === 'completed') {
+      // Join as spectator for completed games
+      socket.join(code);
+      socket.roomCode = code;
+      socket.playerRole = 'spectator';
+      room.spectators.push(socket.id);
+
+      callback({
+        success: true,
+        roomCode: code,
+        role: 'spectator',
+        state: room.state,
+        result: room.result
+      });
       return;
     }
 
+    const sessionId = nanoid(16);
     room.player2 = {
       socketId: socket.id,
+      sessionId: sessionId,
       name: null,
       number: null
     };
@@ -81,10 +172,13 @@ io.on('connection', (socket) => {
     socket.join(code);
     socket.roomCode = code;
     socket.playerRole = 'player2';
+    socket.sessionId = sessionId;
 
     callback({
       success: true,
       roomCode: code,
+      role: 'player2',
+      sessionId: sessionId,
       hasChallenge: room.state === 'challenge_set',
       challenge: room.challenge,
       maxNumber: room.maxNumber,
@@ -203,16 +297,22 @@ io.on('connection', (socket) => {
       player2Name: room.player2.name
     };
 
-    // Send result to both players
+    // Store result for rejoins and spectators
+    room.result = result;
+
+    // Send result to both players and all spectators
     callback({ success: true, result });
     io.to(room.player2.socketId).emit('game-result', result);
+    room.spectators.forEach(spectatorId => {
+      io.to(spectatorId).emit('game-result', result);
+    });
 
     console.log(`Game completed in room ${socket.roomCode}: ${matched ? 'MATCH!' : 'No match'}`);
 
     // Clean up room after a delay
     setTimeout(() => {
       rooms.delete(socket.roomCode);
-    }, 60000); // Keep room for 1 minute for reconnection
+    }, 300000); // Keep room for 5 minutes for reconnection
   });
 
   // Handle disconnection

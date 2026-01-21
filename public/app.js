@@ -4,12 +4,35 @@ const socket = io();
 // State
 let state = {
   roomCode: null,
-  playerRole: null, // 'player1' or 'player2'
+  sessionId: null,
+  playerRole: null, // 'player1' | 'player2' | 'spectator'
   selectedNumber: null,
   salt: null,
   numberHash: null,
   maxNumber: 10
 };
+
+// Session management
+function saveSession() {
+  if (state.roomCode && state.sessionId) {
+    localStorage.setItem('oneToTen_session', JSON.stringify({
+      roomCode: state.roomCode,
+      sessionId: state.sessionId,
+      playerRole: state.playerRole,
+      salt: state.salt,
+      selectedNumber: state.selectedNumber
+    }));
+  }
+}
+
+function loadSession() {
+  const saved = localStorage.getItem('oneToTen_session');
+  return saved ? JSON.parse(saved) : null;
+}
+
+function clearSession() {
+  localStorage.removeItem('oneToTen_session');
+}
 
 // Views
 const views = {
@@ -152,7 +175,9 @@ function createRoom() {
   socket.emit('create-room', (response) => {
     if (response.success) {
       state.roomCode = response.roomCode;
+      state.sessionId = response.sessionId;
       state.playerRole = 'player1';
+      saveSession();
       elements.displayRoomCode.textContent = response.roomCode;
 
       // Create number picker
@@ -181,8 +206,27 @@ function joinRoom(code) {
   socket.emit('join-room', roomCode, (response) => {
     if (response.success) {
       state.roomCode = response.roomCode;
-      state.playerRole = 'player2';
+      state.playerRole = response.role;
       state.maxNumber = response.maxNumber || 10;
+
+      // Spectator mode
+      if (response.role === 'spectator') {
+        if (response.result) {
+          showResult(response.result);
+        } else if (response.state === 'challenge_set') {
+          // Show waiting view for spectators
+          elements.displayChallenge.textContent = response.challenge;
+          elements.displayRoomCodeWaiting.textContent = state.roomCode;
+          showView('waiting');
+        } else {
+          showView('waitingResult');
+        }
+        return;
+      }
+
+      // Player 2
+      state.sessionId = response.sessionId;
+      saveSession();
 
       showView('join');
 
@@ -191,6 +235,49 @@ function joinRoom(code) {
       }
     } else {
       showError('Error', response.error);
+    }
+  });
+}
+
+// Rejoin room with saved session
+function rejoinRoom(session) {
+  socket.emit('rejoin-room', {
+    roomCode: session.roomCode,
+    sessionId: session.sessionId
+  }, (response) => {
+    if (response.success) {
+      state.roomCode = session.roomCode;
+      state.sessionId = session.sessionId;
+      state.playerRole = response.role;
+      state.salt = session.salt;
+      state.selectedNumber = session.selectedNumber;
+
+      // If game is completed, show result
+      if (response.result) {
+        showResult(response.result);
+        return;
+      }
+
+      // Restore appropriate view based on state
+      if (response.role === 'player1') {
+        if (response.state === 'waiting') {
+          elements.displayRoomCode.textContent = state.roomCode;
+          showView('lobby');
+        } else if (response.state === 'challenge_set') {
+          elements.displayChallenge.textContent = response.challenge;
+          elements.displayRoomCodeWaiting.textContent = state.roomCode;
+          showView('waiting');
+        }
+      } else if (response.role === 'player2') {
+        if (response.state === 'challenge_set') {
+          showChallenge(response.challenge, response.maxNumber, response.player1Name);
+          showView('join');
+        }
+      }
+    } else {
+      // Session invalid, clear and show landing
+      clearSession();
+      checkUrlForRoom();
     }
   });
 }
@@ -220,6 +307,7 @@ async function submitChallenge() {
   // Generate commitment
   state.salt = await generateSalt();
   state.numberHash = await hashCommitment(state.selectedNumber, state.salt);
+  saveSession(); // Save salt for potential rejoin
 
   socket.emit('set-name', name, () => {});
   socket.emit('submit-challenge', {
@@ -382,7 +470,8 @@ elements.inputP2Name.addEventListener('input', () => {
 elements.btnSubmitGuess.addEventListener('click', submitGuess);
 
 elements.btnPlayAgain.addEventListener('click', () => {
-  state = { roomCode: null, playerRole: null, selectedNumber: null, salt: null, numberHash: null, maxNumber: 10 };
+  clearSession();
+  state = { roomCode: null, sessionId: null, playerRole: null, selectedNumber: null, salt: null, numberHash: null, maxNumber: 10 };
   window.history.replaceState({}, '', window.location.pathname);
   showView('landing');
 });
@@ -434,4 +523,16 @@ socket.on('connect_error', () => {
 });
 
 // Initialize
-checkUrlForRoom();
+function init() {
+  // Check for saved session first
+  const savedSession = loadSession();
+  if (savedSession) {
+    rejoinRoom(savedSession);
+    return;
+  }
+
+  // Check for room code in URL
+  checkUrlForRoom();
+}
+
+init();
