@@ -1,9 +1,65 @@
-const express = require('express');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-const { nanoid } = require('nanoid');
-const db = require('./db');
+import express, { Request, Response } from 'express';
+import { createServer } from 'http';
+import { Server, Socket } from 'socket.io';
+import path from 'path';
+import { nanoid } from 'nanoid';
+import { saveGame, getRecentGames, GameData } from './db';
+
+// Extend Socket type to include custom properties
+interface GameSocket extends Socket {
+  roomCode?: string;
+  playerRole?: 'player1' | 'player2' | 'spectator';
+  sessionId?: string;
+}
+
+// Room types
+type RoomState = 'waiting' | 'challenge_set' | 'completed';
+
+interface Player1 {
+  socketId: string;
+  sessionId: string;
+  name: string | null;
+  numberHash: string | null;
+  salt: string | null;
+  number: number | null;
+}
+
+interface Player2 {
+  socketId: string;
+  sessionId: string;
+  name: string | null;
+  number: number | null;
+}
+
+interface GameResult {
+  player1Number: number;
+  player2Number: number;
+  salt: string;
+  numberHash: string;
+  matched: boolean;
+  challenge: string;
+  player1Name: string;
+  player2Name: string;
+}
+
+interface Room {
+  state: RoomState;
+  player1: Player1;
+  player2: Player2 | null;
+  spectators: string[];
+  challenge: string | null;
+  maxNumber: number;
+  result: GameResult | null;
+  createdAt: number;
+}
+
+interface ActiveRoom {
+  roomCode: string;
+  player1Name: string | null;
+  challenge: string | null;
+  maxNumber: number;
+  createdAt: number;
+}
 
 const app = express();
 const server = createServer(app);
@@ -15,17 +71,17 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // API endpoint for game history
-app.get('/api/history', (req, res) => {
-  const games = db.getRecentGames(50);
+app.get('/api/history', (_req: Request, res: Response) => {
+  const games = getRecentGames(50);
   res.json(games);
 });
 
 // In-memory room storage (rooms are ephemeral, only history persists)
-const rooms = new Map();
+const rooms = new Map<string, Room>();
 
 // API endpoint for active rooms waiting for player 2
-app.get('/api/rooms', (req, res) => {
-  const activeRooms = [];
+app.get('/api/rooms', (_req: Request, res: Response) => {
+  const activeRooms: ActiveRoom[] = [];
   for (const [code, room] of rooms.entries()) {
     // Only show rooms that have a challenge set but no player 2 yet
     if (room.state === 'challenge_set' && !room.player2) {
@@ -45,11 +101,12 @@ app.get('/api/rooms', (req, res) => {
 
 // Room states: 'waiting' | 'challenge_set' | 'completed'
 
-io.on('connection', (socket) => {
+io.on('connection', (baseSocket: Socket) => {
+  const socket = baseSocket as GameSocket;
   console.log(`Client connected: ${socket.id}`);
 
   // Create a new room
-  socket.on('create-room', (callback) => {
+  socket.on('create-room', (callback: (response: { success: boolean; roomCode?: string; sessionId?: string; error?: string }) => void) => {
     const roomCode = nanoid(6).toUpperCase();
     const sessionId = nanoid(16);
     rooms.set(roomCode, {
@@ -78,7 +135,7 @@ io.on('connection', (socket) => {
   });
 
   // Rejoin a room with session ID
-  socket.on('rejoin-room', ({ roomCode, sessionId }, callback) => {
+  socket.on('rejoin-room', ({ roomCode, sessionId }: { roomCode: string; sessionId: string }, callback: (response: any) => void) => {
     const code = roomCode.toUpperCase();
     const room = rooms.get(code);
 
@@ -133,7 +190,7 @@ io.on('connection', (socket) => {
   });
 
   // Join an existing room (as player 2 or spectator)
-  socket.on('join-room', (roomCode, callback) => {
+  socket.on('join-room', (roomCode: string, callback: (response: any) => void) => {
     const code = roomCode.toUpperCase();
     const room = rooms.get(code);
 
@@ -211,8 +268,8 @@ io.on('connection', (socket) => {
   });
 
   // Player 1 sets their name
-  socket.on('set-name', (name, callback) => {
-    const room = rooms.get(socket.roomCode);
+  socket.on('set-name', (name: string, callback: (response: { success: boolean; error?: string }) => void) => {
+    const room = socket.roomCode ? rooms.get(socket.roomCode) : undefined;
     if (!room) {
       callback({ success: false, error: 'Room not found' });
       return;
@@ -220,7 +277,7 @@ io.on('connection', (socket) => {
 
     if (socket.playerRole === 'player1') {
       room.player1.name = name;
-    } else if (socket.playerRole === 'player2') {
+    } else if (socket.playerRole === 'player2' && room.player2) {
       room.player2.name = name;
       // Notify player 1 of player 2's name
       io.to(room.player1.socketId).emit('player2-named', name);
@@ -230,8 +287,8 @@ io.on('connection', (socket) => {
   });
 
   // Player 1 submits challenge with commitment
-  socket.on('submit-challenge', ({ challenge, maxNumber, numberHash }, callback) => {
-    const room = rooms.get(socket.roomCode);
+  socket.on('submit-challenge', ({ challenge, maxNumber, numberHash }: { challenge: string; maxNumber: number; numberHash: string }, callback: (response: { success: boolean; error?: string }) => void) => {
+    const room = socket.roomCode ? rooms.get(socket.roomCode) : undefined;
     if (!room || socket.playerRole !== 'player1') {
       callback({ success: false, error: 'Invalid operation' });
       return;
@@ -263,9 +320,9 @@ io.on('connection', (socket) => {
   });
 
   // Player 2 submits their number guess
-  socket.on('submit-guess', ({ number }, callback) => {
-    const room = rooms.get(socket.roomCode);
-    if (!room || socket.playerRole !== 'player2') {
+  socket.on('submit-guess', ({ number }: { number: number }, callback: (response: { success: boolean; error?: string }) => void) => {
+    const room = socket.roomCode ? rooms.get(socket.roomCode) : undefined;
+    if (!room || socket.playerRole !== 'player2' || !room.player2) {
       callback({ success: false, error: 'Invalid operation' });
       return;
     }
@@ -283,9 +340,9 @@ io.on('connection', (socket) => {
   });
 
   // Player 1 reveals their number
-  socket.on('reveal-number', ({ number, salt }, callback) => {
-    const room = rooms.get(socket.roomCode);
-    if (!room || socket.playerRole !== 'player1') {
+  socket.on('reveal-number', ({ number, salt }: { number: number; salt: string }, callback: (response: { success: boolean; result?: GameResult; error?: string }) => void) => {
+    const room = socket.roomCode ? rooms.get(socket.roomCode) : undefined;
+    if (!room || socket.playerRole !== 'player1' || !room.player2) {
       callback({ success: false, error: 'Invalid operation' });
       return;
     }
@@ -298,29 +355,30 @@ io.on('connection', (socket) => {
 
     // Save to history
     try {
-      db.saveGame({
-        roomCode: socket.roomCode,
-        player1Name: room.player1.name,
-        player2Name: room.player2.name,
-        challenge: room.challenge,
+      const gameData: GameData = {
+        roomCode: socket.roomCode!,
+        player1Name: room.player1.name || 'Player 1',
+        player2Name: room.player2.name || 'Player 2',
+        challenge: room.challenge || '',
         maxNumber: room.maxNumber,
         player1Number: room.player1.number,
-        player2Number: room.player2.number,
+        player2Number: room.player2.number!,
         matched
-      });
+      };
+      saveGame(gameData);
     } catch (err) {
       console.error('Failed to save game:', err);
     }
 
-    const result = {
+    const result: GameResult = {
       player1Number: number,
-      player2Number: room.player2.number,
+      player2Number: room.player2.number!,
       salt: salt,
-      numberHash: room.player1.numberHash,
+      numberHash: room.player1.numberHash!,
       matched,
-      challenge: room.challenge,
-      player1Name: room.player1.name,
-      player2Name: room.player2.name
+      challenge: room.challenge!,
+      player1Name: room.player1.name || 'Player 1',
+      player2Name: room.player2.name || 'Player 2'
     };
 
     // Store result for rejoins and spectators
@@ -336,15 +394,18 @@ io.on('connection', (socket) => {
     console.log(`Game completed in room ${socket.roomCode}: ${matched ? 'MATCH!' : 'No match'}`);
 
     // Clean up room after a delay
+    const roomCode = socket.roomCode;
     setTimeout(() => {
-      rooms.delete(socket.roomCode);
+      if (roomCode) {
+        rooms.delete(roomCode);
+      }
     }, 300000); // Keep room for 5 minutes for reconnection
   });
 
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log(`Client disconnected: ${socket.id}`);
-    const room = rooms.get(socket.roomCode);
+    const room = socket.roomCode ? rooms.get(socket.roomCode) : undefined;
     if (room) {
       // Notify other player
       if (socket.playerRole === 'player1' && room.player2) {
