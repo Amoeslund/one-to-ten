@@ -522,6 +522,21 @@ socket.on('connect_error', () => {
   showError('Connection Error', 'Unable to connect to server.');
 });
 
+// Rejoin on reconnect if we have a session
+socket.on('connect', () => {
+  if (state.sessionId && state.roomCode) {
+    // Re-establish session after reconnect
+    socket.emit('rejoin-room', {
+      roomCode: state.roomCode,
+      sessionId: state.sessionId
+    }, (response) => {
+      if (!response.success) {
+        console.log('Failed to rejoin after reconnect:', response.error);
+      }
+    });
+  }
+});
+
 // Initialize
 function init() {
   // Check for saved session first
