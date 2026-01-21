@@ -2,7 +2,7 @@ services:
   one-to-ten:
     image: ghcr.io/amoeslund/one-to-ten:latest
     ports:
-      - "3000:3000"
+      - "13377:3000"
     volumes:
       - game-data:/app/data
     environment:
