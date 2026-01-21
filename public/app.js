@@ -467,14 +467,8 @@ async function updateRoomCount() {
   try {
     const response = await fetch('/api/rooms');
     const rooms = await response.json();
-    const count = rooms.length;
-
-    if (count > 0) {
-      elements.roomCountBadge.textContent = count;
-      elements.roomCountBadge.classList.remove('hidden');
-    } else {
-      elements.roomCountBadge.classList.add('hidden');
-    }
+    elements.roomCountBadge.textContent = rooms.length;
+    elements.roomCountBadge.classList.remove('hidden');
   } catch (err) {
     // Silently fail
   }
